@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { User } from '../interface/user';
 import { AuthFirebaseService } from '../service/auth-firebase.service';
 import { Router } from '@angular/router';
+import { LoadingController } from '@ionic/angular';
 import { MenuService } from '../service/menu.service';
 import {FormGroup, FormBuilder, Validators, FormControl, AbstractControl} from '@angular/forms';
 
@@ -19,8 +20,13 @@ export class LoginPage implements OnInit {
     private router: Router,
     private autSvc: AuthFirebaseService,
     private menuService: MenuService,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    private loadingController: LoadingController
   ) { }
+
+  ngOnInit() {
+    this.buildForm();
+  }
 
   buildForm(){
     this.ionicForm = this.formBuilder.group({
@@ -29,19 +35,21 @@ export class LoginPage implements OnInit {
     });
   }   
 
-  ngOnInit() {
-    this.buildForm();
-  }
-
   async onLogin(){
     this.autSvc.onLogin(this.user).then((user:any)=>{
       if(user!=null && user.code ==undefined){
         console.log('Successfully logged in!');
-        this.menuService.setTitle("presupuesto");
-        this.router.navigate(['/main/presupuesto']);
+        this.loadingController.dismiss();
+        setTimeout(() => {
+          this.menuService.setTitle("presupuesto");
+          this.router.navigate(['main/presupuesto']);
+        }, 650);
+        //this.menuService.setTitle("presupuesto");
+        //this.router.navigate(['/main/presupuesto']);
       }
       else{
         if(user.code){
+          this.loadingController.dismiss();
           if(user.code=='auth/wrong-password' || user.code =='auth/invalid-email' || user.code=='auth/argument-error'){
             console.error(user);
           }
@@ -71,6 +79,7 @@ export class LoginPage implements OnInit {
     if(this.ionicForm.valid){
       this.user.email = this.ionicForm.get('email').value;
       this.user.password = this.ionicForm.get('password').value;
+      this.presentLoadingWithOptions();
       this.onLogin();
     }
   } 
@@ -82,5 +91,23 @@ export class LoginPage implements OnInit {
     this.menuService.setTitle("register")
     this.router.navigate(['/register']);
   }  
+
+  
+
+  async presentLoadingWithOptions() {
+    const loading = await this.loadingController.create({
+      //spinner: null,
+      duration: 5000,
+      message: 'Click the backdrop to dismiss early...',
+      //translucent: true,
+      //cssClass: 'custom-class custom-loading',
+      backdropDismiss: true
+    });
+
+    await loading.present();
+
+    const { role, data } = await loading.onDidDismiss();
+    console.log('Loading dismissed with role:', role);
+  }   
   
 }
